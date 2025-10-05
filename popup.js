@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const cancelBtn = document.getElementById("cancelBtn");
   const themeSelect = document.getElementById("theme");
   const shortkeyPreview = document.getElementById("shortkeyPreview");
+  const openInNewTabCheckbox = document.getElementById("openInNewTab");
 
   let editingIndex = -1;
 
@@ -552,6 +553,7 @@ document.addEventListener("DOMContentLoaded", function () {
   addBtn.addEventListener("click", function () {
     const url = urlInput.value.trim();
     let domain = domainInput.value.trim();
+    const openInNewTab = openInNewTabCheckbox.checked;
 
     if (!url || !domain) {
       showToast("Please fill in URL and Domain fields", "warning");
@@ -592,14 +594,14 @@ document.addEventListener("DOMContentLoaded", function () {
     // Build shortkey
     let shortkey = buildShortkey(modifier1, mainKey, modifier2);
 
-    saveShortcut(url, shortkey, domain, color);
+    saveShortcut(url, shortkey, domain, color, openInNewTab);
     resetForm();
   });
 
-  // Update shortcut handler
   updateBtn.addEventListener("click", function () {
     const url = urlInput.value.trim();
     let domain = domainInput.value.trim();
+    const openInNewTab = openInNewTabCheckbox.checked;
 
     if (!url || !domain) {
       showToast("Please fill in URL and Domain fields", "warning");
@@ -640,7 +642,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Build shortkey
     let shortkey = buildShortkey(modifier1, mainKey, modifier2);
 
-    updateShortcut(editingIndex, url, shortkey, domain, color);
+    updateShortcut(editingIndex, url, shortkey, domain, color, openInNewTab);
     resetForm();
   });
 
@@ -677,6 +679,7 @@ document.addEventListener("DOMContentLoaded", function () {
     mainKeySelect.value = "h";
     modifier2Select.value = "none";
     colorSelect.value = "default";
+    openInNewTabCheckbox.checked = false; // Reset checkbox
     addBtn.style.display = "block";
     updateBtn.style.display = "none";
     cancelBtn.style.display = "none";
@@ -697,7 +700,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     updateShortkeyPreview();
   }
-
   function loadShortcuts() {
     chrome.storage.sync.get(["shortcuts"], function (result) {
       const shortcuts = result.shortcuts || [];
@@ -706,99 +708,110 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function displayShortcuts(shortcuts) {
-    shortcutsList.innerHTML = "";
+  shortcutsList.innerHTML = "";
 
-    if (shortcuts.length === 0) {
-      shortcutsList.innerHTML =
-        '<div class="empty-row">No shortcuts added yet</div>';
-      return;
-    }
-
-    shortcuts.forEach((shortcut, index) => {
-      const shortcutElement = document.createElement("div");
-      shortcutElement.className = `table-row color-${
-        shortcut.color || "default"
-      }`;
-
-      const isGlobal = shortcut.domain === "*";
-      const domainDisplay = isGlobal
-        ? `<span class="global-badge">🌍 Global</span>`
-        : shortcut.domain;
-
-      shortcutElement.innerHTML = `
-                <div class="url-cell">${shortcut.url}</div>
-                <div class="shortkey-cell">${shortcut.shortkey}</div>
-                <div class="domain-cell">
-                    ${domainDisplay}
-                </div>
-                <div class="color-cell">
-                    <div class="color-indicator ${
-                      shortcut.color || "default"
-                    }"></div>
-                </div>
-                <div class="actions-cell">
-                    <button class="edit-btn" data-index="${index}">Edit</button>
-                    <button class="delete-btn" data-index="${index}">Delete</button>
-                </div>
-            `;
-      shortcutsList.appendChild(shortcutElement);
-    });
-
-    // Add event listeners
-    document.querySelectorAll(".edit-btn").forEach((button) => {
-      button.addEventListener("click", function () {
-        const index = parseInt(this.getAttribute("data-index"));
-        editShortcut(index);
-      });
-    });
-
-    document.querySelectorAll(".delete-btn").forEach((button) => {
-      button.addEventListener("click", function () {
-        const index = parseInt(this.getAttribute("data-index"));
-        deleteShortcut(index);
-      });
-    });
+  if (shortcuts.length === 0) {
+    shortcutsList.innerHTML =
+      '<div class="empty-row">No shortcuts added yet</div>';
+    return;
   }
+
+  shortcuts.forEach((shortcut, index) => {
+    const shortcutElement = document.createElement("div");
+    shortcutElement.className = `table-row color-${
+      shortcut.color || "default"
+    }`;
+
+    const isGlobal = shortcut.domain === "*";
+    const domainDisplay = isGlobal
+      ? `<span class="global-badge">🌍 Global</span>`
+      : shortcut.domain;
+
+    // FIX: Ensure openInNewTab is properly checked
+    const openInNewTab = shortcut.openInNewTab || false;
+    const tabDisplay = openInNewTab
+      ? `<span class="new-tab-badge">New Tab</span>`
+      : `<span class="current-tab-badge">Current</span>`;
+
+    shortcutElement.innerHTML = `
+              <div class="url-cell">${shortcut.url}</div>
+              <div class="shortkey-cell">${shortcut.shortkey}</div>
+              <div class="domain-cell">
+                  ${domainDisplay}
+              </div>
+              <div class="tab-cell">
+                  ${tabDisplay}
+              </div>
+              <div class="color-cell">
+                  <div class="color-indicator ${
+                    shortcut.color || "default"
+                  }"></div>
+              </div>
+              <div class="actions-cell">
+                  <button class="edit-btn" data-index="${index}">Edit</button>
+                  <button class="delete-btn" data-index="${index}">Delete</button>
+              </div>
+          `;
+    shortcutsList.appendChild(shortcutElement);
+  });
+
+  // Add event listeners
+  document.querySelectorAll(".edit-btn").forEach((button) => {
+    button.addEventListener("click", function () {
+      const index = parseInt(this.getAttribute("data-index"));
+      editShortcut(index);
+    });
+  });
+
+  document.querySelectorAll(".delete-btn").forEach((button) => {
+    button.addEventListener("click", function () {
+      const index = parseInt(this.getAttribute("data-index"));
+      deleteShortcut(index);
+    });
+  });
+}
+
 
   function editShortcut(index) {
-    chrome.storage.sync.get(["shortcuts"], function (result) {
-      const shortcuts = result.shortcuts || [];
-      const shortcut = shortcuts[index];
+  chrome.storage.sync.get(["shortcuts"], function (result) {
+    const shortcuts = result.shortcuts || [];
+    const shortcut = shortcuts[index];
 
-      // Parse the shortkey
-      const parts = shortcut.shortkey.split("+");
-      let modifier1 = "none";
-      let mainKey = "h";
-      let modifier2 = "none";
+    // Parse the shortkey
+    const parts = shortcut.shortkey.split("+");
+    let modifier1 = "none";
+    let mainKey = "h";
+    let modifier2 = "none";
 
-      if (parts.length === 1) {
-        mainKey = getKeyValue(parts[0]);
-      } else if (parts.length === 2) {
-        modifier1 = parts[0].toLowerCase();
-        mainKey = getKeyValue(parts[1]);
-      } else if (parts.length === 3) {
-        modifier1 = parts[0].toLowerCase();
-        mainKey = getKeyValue(parts[1]);
-        modifier2 = parts[2].toLowerCase();
-      }
+    if (parts.length === 1) {
+      mainKey = getKeyValue(parts[0]);
+    } else if (parts.length === 2) {
+      modifier1 = parts[0].toLowerCase();
+      mainKey = getKeyValue(parts[1]);
+    } else if (parts.length === 3) {
+      modifier1 = parts[0].toLowerCase();
+      mainKey = getKeyValue(parts[1]);
+      modifier2 = parts[2].toLowerCase();
+    }
 
-      // Fill the form
-      urlInput.value = shortcut.url;
-      domainInput.value = shortcut.domain;
-      modifier1Select.value = modifier1;
-      mainKeySelect.value = mainKey;
-      modifier2Select.value = modifier2;
-      colorSelect.value = shortcut.color || "default";
+    // Fill the form - FIX: Ensure openInNewTab is properly set
+    urlInput.value = shortcut.url;
+    domainInput.value = shortcut.domain;
+    modifier1Select.value = modifier1;
+    mainKeySelect.value = mainKey;
+    modifier2Select.value = modifier2;
+    colorSelect.value = shortcut.color || "default";
+    openInNewTabCheckbox.checked = Boolean(shortcut.openInNewTab); // Ensure boolean value
 
-      // Switch to edit mode
-      addBtn.style.display = "none";
-      updateBtn.style.display = "block";
-      cancelBtn.style.display = "block";
-      editingIndex = index;
+    // Switch to edit mode
+    addBtn.style.display = "none";
+    updateBtn.style.display = "block";
+    cancelBtn.style.display = "block";
+    editingIndex = index;
 
-      updateShortkeyPreview();
-    });
-  }
+    updateShortkeyPreview();
+  });
+}
 
   function getKeyValue(displayKey) {
     const specialKeys = {
@@ -827,57 +840,73 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
 
-  function saveShortcut(url, shortkey, domain, color) {
-    chrome.storage.sync.get(["shortcuts"], function (result) {
-      const shortcuts = result.shortcuts || [];
+  function saveShortcut(url, shortkey, domain, color, openInNewTab) {
+  chrome.storage.sync.get(["shortcuts"], function (result) {
+    const shortcuts = result.shortcuts || [];
 
-      // Final conflict check (in case of race conditions)
-      const conflicts = shortcuts.filter((existing, index) => {
-        if (editingIndex === index) return false; // Skip the one we're editing
-        return (
-          existing.shortkey.toLowerCase() === shortkey.toLowerCase() &&
-          ((domain === "*" && existing.domain !== "*") ||
-            (domain !== "*" && existing.domain === "*") ||
-            domain === existing.domain)
-        );
-      });
-
-      if (conflicts.length > 0) {
-        showToast(
-          "Key conflict detected! This shortcut cannot be saved due to conflicts with existing shortcuts."
-        );
-        return;
-      }
-
-      if (editingIndex === -1) {
-        // Add new shortcut
-        shortcuts.push({ url, shortkey, domain, color });
-        showToast("Shortcut added successfully!", "success");
-      } else {
-        // Update existing shortcut
-        shortcuts[editingIndex] = { url, shortkey, domain, color };
-        showToast("Shortcut updated successfully!", "success");
-      }
-
-      chrome.storage.sync.set({ shortcuts: shortcuts }, function () {
-        // Clear cache and update localStorage
-        clearShortcutCache(shortcuts);
-        loadShortcuts();
-      });
+    // Final conflict check (in case of race conditions)
+    const conflicts = shortcuts.filter((existing, index) => {
+      if (editingIndex === index) return false; // Skip the one we're editing
+      return (
+        existing.shortkey.toLowerCase() === shortkey.toLowerCase() &&
+        ((domain === "*" && existing.domain !== "*") ||
+          (domain !== "*" && existing.domain === "*") ||
+          domain === existing.domain)
+      );
     });
-  }
 
-  function updateShortcut(index, url, shortkey, domain, color) {
-    chrome.storage.sync.get(["shortcuts"], function (result) {
-      const shortcuts = result.shortcuts || [];
-      shortcuts[index] = { url, shortkey, domain, color };
-      chrome.storage.sync.set({ shortcuts: shortcuts }, function () {
-        // Clear cache and update localStorage
-        clearShortcutCache(shortcuts);
-        loadShortcuts();
-      });
+    if (conflicts.length > 0) {
+      showToast(
+        "Key conflict detected! This shortcut cannot be saved due to conflicts with existing shortcuts."
+      );
+      return;
+    }
+
+    // FIX: Ensure openInNewTab is properly saved as boolean
+    const shortcutData = { 
+      url, 
+      shortkey, 
+      domain, 
+      color, 
+      openInNewTab: Boolean(openInNewTab) 
+    };
+
+    if (editingIndex === -1) {
+      // Add new shortcut
+      shortcuts.push(shortcutData);
+      showToast("Shortcut added successfully!", "success");
+    } else {
+      // Update existing shortcut
+      shortcuts[editingIndex] = shortcutData;
+      showToast("Shortcut updated successfully!", "success");
+    }
+
+    chrome.storage.sync.set({ shortcuts: shortcuts }, function () {
+      // Clear cache and update localStorage
+      clearShortcutCache(shortcuts);
+      loadShortcuts();
     });
-  }
+  });
+}
+
+  function updateShortcut(index, url, shortkey, domain, color, openInNewTab) {
+  chrome.storage.sync.get(["shortcuts"], function (result) {
+    const shortcuts = result.shortcuts || [];
+    // FIX: Ensure openInNewTab is properly saved as boolean
+    shortcuts[index] = { 
+      url, 
+      shortkey, 
+      domain, 
+      color, 
+      openInNewTab: Boolean(openInNewTab) 
+    };
+    chrome.storage.sync.set({ shortcuts: shortcuts }, function () {
+      // Clear cache and update localStorage
+      clearShortcutCache(shortcuts);
+      loadShortcuts();
+    });
+  });
+}
 
   async function deleteShortcut(index) {
     const confirmed = await showConfirm(

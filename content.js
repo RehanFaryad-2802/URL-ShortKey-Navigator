@@ -5,43 +5,52 @@
   let shortcuts = [];
   let isCacheValid = false;
 
-  // Function to load shortcuts from storage
-  function loadShortcuts() {
-    console.log("Loading shortcuts...");
-    
-    // Try localStorage first for performance
-    try {
-      const cached = localStorage.getItem("urlShortkeyShortcuts");
-      if (cached) {
-        shortcuts = JSON.parse(cached);
-        isCacheValid = true;
-        console.log("Loaded shortcuts from cache:", shortcuts.length, shortcuts);
-      }
-    } catch (e) {
-      console.log("Cache load failed:", e);
-    }
+ // UPDATE the loadShortcuts function in content.js to add debugging:
+function loadShortcuts() {
+  console.log("Loading shortcuts...");
 
-    // Always check chrome.storage for updates
-    if (typeof chrome !== "undefined" && chrome.storage) {
-      chrome.storage.sync.get(["shortcuts"], function (result) {
-        const newShortcuts = result.shortcuts || [];
-        console.log("Loaded from chrome.storage:", newShortcuts.length, newShortcuts);
-        
-        if (JSON.stringify(newShortcuts) !== JSON.stringify(shortcuts)) {
-          shortcuts = newShortcuts;
-          try {
-            localStorage.setItem(
-              "urlShortkeyShortcuts",
-              JSON.stringify(shortcuts)
-            );
-          } catch (e) {
-            console.log("Cache update failed:", e);
-          }
-        }
-        isCacheValid = true;
+  // Try localStorage first for performance
+  try {
+    const cached = localStorage.getItem("urlShortkeyShortcuts");
+    if (cached) {
+      shortcuts = JSON.parse(cached);
+      isCacheValid = true;
+      console.log("Loaded shortcuts from cache:", shortcuts.length, shortcuts);
+      // Debug: Check if openInNewTab property exists
+      shortcuts.forEach((shortcut, index) => {
+        console.log(`Shortcut ${index}:`, shortcut.shortkey, "openInNewTab:", shortcut.openInNewTab);
       });
     }
+  } catch (e) {
+    console.log("Cache load failed:", e);
   }
+
+  // Always check chrome.storage for updates
+  if (typeof chrome !== "undefined" && chrome.storage) {
+    chrome.storage.sync.get(["shortcuts"], function (result) {
+      const newShortcuts = result.shortcuts || [];
+      console.log("Loaded from chrome.storage:", newShortcuts.length, newShortcuts);
+      
+      // Debug: Check if openInNewTab property exists
+      newShortcuts.forEach((shortcut, index) => {
+        console.log(`Chrome storage shortcut ${index}:`, shortcut.shortkey, "openInNewTab:", shortcut.openInNewTab);
+      });
+
+      if (JSON.stringify(newShortcuts) !== JSON.stringify(shortcuts)) {
+        shortcuts = newShortcuts;
+        try {
+          localStorage.setItem(
+            "urlShortkeyShortcuts",
+            JSON.stringify(shortcuts)
+          );
+        } catch (e) {
+          console.log("Cache update failed:", e);
+        }
+      }
+      isCacheValid = true;
+    });
+  }
+}
 
   // Check if user is focused on an input field
   function isUserTyping() {
@@ -51,7 +60,7 @@
     // Direct input fields
     if (
       activeElement.tagName === "INPUT" &&
-      activeElement.type !== "checkbox" && 
+      activeElement.type !== "checkbox" &&
       activeElement.type !== "radio" &&
       activeElement.type !== "button" &&
       activeElement.type !== "submit" &&
@@ -83,7 +92,7 @@
 
     // Handle special keys
     const key = event.key.toLowerCase();
-    
+
     // Skip if only modifiers are pressed
     if (["control", "shift", "alt", "meta"].includes(key)) {
       return "";
@@ -174,45 +183,58 @@
     return null;
   }
 
-  // Main keyboard event handler - FIXED VERSION (No annoying message)
-  function handleKeydown(event) {
-    // Check if user is typing first - just return, no message
-    if (isUserTyping()) {
-      return;
-    }
+  // REPLACE the handleKeydown function in content.js:
+function handleKeydown(event) {
+  // Check if user is typing first - just return, no message
+  if (isUserTyping()) {
+    return;
+  }
 
-    // Don't handle events that are already handled
-    if (event.defaultPrevented) {
-      return;
-    }
+  // Don't handle events that are already handled
+  if (event.defaultPrevented) {
+    return;
+  }
 
-    // Get key combination
-    const keyCombination = parseKeyCombination(event);
-    
-    // Don't handle empty or invalid combinations
-    if (!keyCombination || keyCombination === "") {
-      return;
-    }
+  // Get key combination
+  const keyCombination = parseKeyCombination(event);
 
-    console.log("Key combination:", keyCombination);
+  // Don't handle empty or invalid combinations
+  if (!keyCombination || keyCombination === "") {
+    return;
+  }
 
-    // Find matching shortcut
-    const currentDomain = window.location.hostname;
-    const shortcut = findMatchingShortcut(keyCombination, currentDomain);
+  console.log("Key combination:", keyCombination);
 
-    if (shortcut) {
-      console.log("Shortcut triggered:", shortcut.shortkey, "->", shortcut.url);
-      event.preventDefault();
-      event.stopPropagation();
+  // Find matching shortcut
+  const currentDomain = window.location.hostname;
+  const shortcut = findMatchingShortcut(keyCombination, currentDomain);
 
-      // Navigate to the URL
+  if (shortcut) {
+    console.log("Shortcut triggered:", shortcut.shortkey, "->", shortcut.url);
+    console.log("Open in new tab:", shortcut.openInNewTab); // Debug log
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Navigate to the URL - FIX: Properly check openInNewTab
+    if (shortcut.openInNewTab === true) {
+      // Open in new tab
+      console.log("Opening in new tab");
+      window.open(shortcut.url, '_blank', 'noopener,noreferrer');
+    } else {
+      // Open in current tab
+      console.log("Opening in current tab");
       window.location.href = shortcut.url;
     }
   }
+}
 
   // Listen for messages from popup
   if (typeof chrome !== "undefined" && chrome.runtime) {
-    chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+    chrome.runtime.onMessage.addListener(function (
+      request,
+      sender,
+      sendResponse
+    ) {
       if (request.action === "clearCache") {
         shortcuts = [];
         isCacheValid = false;
@@ -229,7 +251,7 @@
 
     // Remove existing event listener to avoid duplicates
     document.removeEventListener("keydown", handleKeydown, true);
-    
+
     // Add event listener with capture phase to catch events early
     document.addEventListener("keydown", handleKeydown, true);
 

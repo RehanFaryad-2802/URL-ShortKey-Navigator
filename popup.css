@@ -7,7 +7,6 @@
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   width: 100vw;
-  min-height: 600px;
   overflow-x: hidden;
 }
 
@@ -143,7 +142,7 @@ body {
 
 /* Shortcuts Table */
 .shortcuts-container {
-  margin-bottom: 25px;
+  margin: 25px auto;
 }
 
 .shortcuts-container h2 {
@@ -162,21 +161,28 @@ body {
 
 .table-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 0.5fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 0.5fr 1fr 1fr;
   padding: 15px;
+  gap: 20px;
   background: rgba(0, 0, 0, 0.3);
   font-weight: bold;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-
+.table-header > :not(:last-child){
+  text-align: center;
+}
+.tab-cell{
+  text-align: center;
+}
 .table-body {
-  max-height: 250px;
   overflow-y: auto;
 }
 
 .table-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 0.5fr 1fr;
+  gap: 20px;
+  align-items: center;
+  grid-template-columns: 2fr 1fr 1fr 0.5fr 1fr 1fr;
   padding: 12px 15px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
@@ -262,6 +268,8 @@ body {
 
 .shortkey-cell {
   font-weight: bold;
+  font-size: 19px;
+  text-align: center;
   color: var(--accent);
 }
 
@@ -270,6 +278,7 @@ body {
   opacity: 0.8;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
 }
 
@@ -931,4 +940,85 @@ body.theme-teal { --accent-rgb: 20, 184, 166; }
 body.theme-gold { --accent-rgb: 234, 179, 8; }
 body.theme-silver { --accent-rgb: 148, 163, 184; }
 
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    gap: 8px;
+}
 
+.checkbox-label input[type="checkbox"] {
+    display: none;
+}
+
+.checkmark {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--accent);
+    border-radius: 3px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark {
+    background-color: var(--accent);
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+    content: "✓";
+    position: absolute;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.new-tab-badge {
+    background: var(--accent);
+    color: var(--primary);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 0.7rem;
+  }
+  
+  .current-tab-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .key-combination-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    margin-bottom: 15px;
+  }
+  
+  .key-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  
+  .key-group label {
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text);
+    opacity: 0.9;
+  }
+  
+  .small-select {
+    padding: 8px 10px !important;
+    font-size: 0.85rem !important;
+    min-height: auto !important;
+    background-position: right 8px center !important;
+    background-size: 14px !important;
+  }
