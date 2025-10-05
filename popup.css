@@ -116,6 +116,7 @@ body {
   font-weight: 700;
   text-shadow: 2px 2px 4px var(--shadow);
   background: linear-gradient(90deg, var(--accent), #ffffff);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
