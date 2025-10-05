@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "URL ShortKey Navigator",
+  "version": "1.0",
+  "description": "Navigate to URLs using custom keyboard shortcuts",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_title": "URL ShortKey Settings"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+U",
+        "mac": "Command+Shift+U"
+      }
+    }
+  },
+  "icons": {
+    "16": "Untitled.jpg",
+    "48": "Untitled.jpg",
+    "128": "Untitled.jpg"
+  }
+}
